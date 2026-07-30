@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>予約CSV集計ダッシュボード</title>
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 30px; background-color: #f5f7fa; color: #333; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #34495e; padding-bottom: 10px; }
+        h2 { color: #2980b9; margin-top: 25px; border-left: 5px solid #2980b9; padding-left: 10px; }
+        h2.past { color: #7f8c8d; border-left-color: #7f8c8d; }
+        h2.timeline { color: #8e44ad; border-left-color: #8e44ad; margin-top: 0; }
+        h2.irregular { color: #d35400; border-left-color: #d35400; margin-top: 0; }
+        .upload-box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        input[type="file"] { font-size: 16px; cursor: pointer; }
+        
+        .container { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .card-left { flex: 3; min-width: 750px; }   
+        .card-right { flex: 2; min-width: 500px; align-self: flex-start; } 
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        th { background-color: #34495e; color: white; white-space: nowrap; }
+        .table-left th, .table-left td { text-align: left; } 
+        .table-left td:nth-child(n+3) { text-align: center; } 
+        .table-past th { background-color: #7f8c8d; }
+        .table-timeline th { background-color: #8e44ad; }
+        .table-irregular th { background-color: #d35400; }
+        .table-irregular td { font-size: 13px; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        
+        .status-kakutei { color: #27ae60; font-weight: bold; }
+        .status-machi { color: #f39c12; font-weight: bold; }
+        .status-cancel { color: #c0392b; font-weight: bold; }
+        
+        .event-name { 
+            font-size: 14px; 
+            color: #2980b9; 
+            background-color: #edf2f7; 
+            padding: 3px 8px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            text-decoration: underline;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .event-name:hover { 
+            background-color: #2980b9; 
+            color: white; 
+        }
+        
+        .size-badge {
+            font-size: 18pt;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-left: 8px;
+            white-space: nowrap;
+            display: inline-block;
+            vertical-align: middle;
+            cursor: pointer;
+            text-decoration: underline;
+            transition: color 0.2s;
+        }
+        .size-badge:hover {
+            color: #2980b9;
+        }
+
+        select { font-size: 16px; padding: 6px 12px; border-radius: 4px; border: 1px solid #ccc; width: 100%; margin-bottom: 15px; background: #fff; font-weight: bold; color: #2c3e50; }
+        .filter-box { background-color: #f8f9fa; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
+        .table-responsive { overflow-x: auto; display: block; width: 100%; }
+        .text-muted { color: #999; font-size: 13px; }
+        .highlight-num { font-weight: bold; color: #2c3e50; background-color: #fffaf0; }
+        .close-btn { float: right; cursor: pointer; color: #aaa; font-size: 28px; line-height: 20px; }
+        .close-btn:hover { color: #000; }
+
+        .modal-overlay {
+            display: none; 
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); 
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+            width: 90%;
+            max-width: 650px; 
+            max-height: 80vh; 
+            overflow-y: auto; 
+            position: relative;
+            animation: fadeIn 0.15s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .size-header-container {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 15px;
+            margin-top: 25px;
+            border-left: 5px solid #2980b9;
+            padding-left: 10px;
+        }
+        .size-header-container h2 {
+            margin: 0;
+            padding: 0;
+            border: none;
+        }
+        .inline-select {
+            font-size: 14px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            width: auto;
+            margin-bottom: 0;
+            background: #fff;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>📊 予約CSV集計ダッシュボード</h1>
+    
+    <div class="upload-box">
+        <h3>予約データのCSVファイルを選択してください</h3>
+        <input type="file" id="csvFile" accept=".csv">
+    </div>
+
+    <div id="resultArea" style="display: none;">
+        
+        <div class="container">
+            <div class="card card-left">
+                <h2>📅 今後の利用予定（今日以降） <span style="font-size: 12px; color:#666; font-weight:normal; margin-left:10px;">※イベント名で推移、(大/特大)クリックで車両詳細を表示</span></h2>
+                <table id="futureDateTable" class="table-left">
+                    <thead>
+                        <tr>
+                            <th>利用日</th>
+                            <th style="width: 50%;">イベント名</th>
+                            <th>確定</th>
+                            <th>承認待ち</th>
+                            <th>キャンセル</th>
+                            <th>合計(有効)</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+
+                <h2 class="past">⏳ 過去の利用履歴（昨日以前）</h2>
+                <table id="pastDateTable" class="table-left">
+                    <thead>
+                        <tr>
+                            <th>利用日</th>
+                            <th style="width: 50%;">イベント名</th>
+                            <th>確定</th>
+                            <th>承認待ち</th>
+                            <th>キャンセル</th>
+                            <th>合計(有効)</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="card card-right">
+                <div class="filter-box">
+                    <label id="filterLabel" for="dateFilter" style="font-size: 14px; font-weight: bold; display: block; margin-bottom: 5px;">📅 表示する利用日・イベントを選択：</label>
+                    <select id="dateFilter">
+                        <option value="all">★全期間合計</option>
+                    </select>
+                    <p style="font-size: 12px; color: #666; margin: 5px 0 0 0;">※以下の集計からはキャンセルの予約を除外しています</p>
+                </div>
+
+                <div id="irregularSection" style="display: none; margin-bottom: 30px;">
+                    <h2 class="irregular">⚠️ イレギュラー対応・管理タグあり</h2>
+                    <div class="table-responsive">
+                        <table id="irregularTable" class="table-irregular">
+                            <thead>
+                                <tr>
+                                    <th>お名前</th>
+                                    <th>車種名</th>
+                                    <th>サイズ</th>
+                                    <th>ナンバー</th>
+                                    <th>到着</th>
+                                    <th>管理用タグの内容</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="size-header-container">
+                    <h2>🚗 車サイズ区分別 件数</h2>
+                    <span id="layoutDisplay" style="font-size: 14px; color: #e67e22; font-weight: bold;"></span>
+                    <select id="layoutFilter" class="inline-select">
+                        <option value="基本型">基本型</option>
+                        <option value="1台型">1台型</option>
+                        <option value="2台型">2台型</option>
+                        <option value="3台型">3台型</option>
+                        <option value="4台型">4台型</option>
+                        <option value="5台型">5台型</option>
+                        <option value="6台型">6台型</option>
+                        <option value="7台型">7台型</option>
+                        <option value="8台型">8台型</option>
+                    </select>
+                </div>
+
+                <table id="carTypeTable">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left;">車サイズ区分</th>
+                            <th style="text-align: right;">予約件数</th>
+                            <th style="text-align: right;">収容可能台数</th>
+                            <th style="text-align: right;">空き・超過台数</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+
+                <h2 style="color: #e67e22; border-left-color: #e67e22; margin-top: 30px;">⏰ 到着予定時刻別 × 車サイズ内訳</h2>
+                <div class="table-responsive">
+                    <table id="timeTable">
+                        <thead>
+                            <tr>
+                                <th>到着予定時刻</th>
+                                <th>軽</th>
+                                <th>小型</th>
+                                <th>2小</th>
+                                <th>3小</th>
+                                <th>オレンジ</th>
+                                <th>青</th>
+                                <th>白</th>
+                                <th>大</th>
+                                <th>特大</th>
+                                <th>その他</th>
+                                <th style="background-color: #dbeafe; color: #1e3a8a;">合計</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <h2 style="color: #2b6cb0; border-left-color: #2b6cb0; margin-top: 30px;">👑 予約回数の多い顧客TOP10（全データ）</h2>
+                <div class="table-responsive">
+                    <table id="topCustomersTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 15%;">順位</th>
+                                <th style="text-align: left; width: 45%;">氏名</th>
+                                <th style="text-align: left;">メールアドレス</th>
+                                <th style="text-align: right; background-color: #dbeafe; color: #1e3a8a; width: 25%;">予約回数</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- 申込推移モーダル -->
+        <div id="timelineModal" class="modal-overlay" onclick="closeModal()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <span class="close-btn" onclick="closeModal()">&times;</span>
+                <h2 class="timeline" id="timelineTitle">📈 予約申込の推移</h2>
+                <table class="table-left table-timeline">
+                    <thead>
+                        <tr>
+                            <th>予約が入った日 (申込日)</th>
+                            <th>確定</th>
+                            <th>キャンセル</th>
+                            <th style="background-color: #2980b9; color: white;">累計予約数 (有効)</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 車両詳細モーダル -->
+        <div id="largeCarModal" class="modal-overlay" onclick="closeLargeCarModal()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <span class="close-btn" onclick="closeLargeCarModal()">&times;</span>
+                <h2 class="timeline" id="largeCarTitle" style="color: #2c3e50; border-left-color: #2c3e50;">🚚 予約車両の詳細</h2>
+                <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 13px; font-weight: bold;">表示切替:</span>
+                    <button type="button" id="btnFilterLarge" onclick="filterLargeCarModal('large')" style="padding: 4px 12px; border-radius: 4px; border: 1px solid #2980b9; background-color: #2980b9; color: white; cursor: pointer; font-size: 12px; font-weight: bold;">大・特大のみ</button>
+                    <button type="button" id="btnFilterAll" onclick="filterLargeCarModal('all')" style="padding: 4px 12px; border-radius: 4px; border: 1px solid #ccc; background-color: #f8f9fa; color: #333; cursor: pointer; font-size: 12px;">全車両表示</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table-left" id="largeCarTable">
+                        <thead>
+                            <tr>
+                                <th style="white-space: nowrap;">名前</th>
+                                <th style="white-space: nowrap;">到着時間</th>
+                                <th style="white-space: nowrap;">車種名</th>
+                                <th style="white-space: nowrap;">サイズ区分</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let globalDailyStats = {};
+        let globalSizeStatsAll = {};
+        let globalSizeStatsByCombo = {};
+        let globalTimeStatsAll = {};
+        let globalTimeStatsByCombo = {};
+        let globalIrregularData = []; 
+        let globalCustomerStats = {}; 
+        let currentLargeCarComboKey = null;
+
+        // 車サイズ並び順定義
+        const TARGET_SIZE_ORDER = ['軽', '小型', '2小', '3小', 'オレンジ', '青', '白', '大', '特大'];
+
+        // 各レイアウトの収容可能台数マスタ
+        const LAYOUT_MASTER = {
+            '基本型': { '軽': 22, '小型': 10, '2小': 1, '3小': 3, 'オレンジ': 19, '青': 20, '白': 36, '大': 6, '特大': 2 },
+            '1台型': { '軽': 25, '小型': 10, '2小': 3, '3小': 3, 'オレンジ': 19, '青': 20, '白': 32, '大': 6, '特大': 2 },
+            '2台型': { '軽': 28, '小型': 10, '2小': 6, '3小': 2, 'オレンジ': 17, '青': 18, '白': 32, '大': 6, '特大': 2 },
+            '3台型': { '軽': 31, '小型': 10, '2小': 6, '3小': 2, 'オレンジ': 17, '青': 16, '白': 32, '大': 6, '特大': 2 },
+            '4台型': { '軽': 36, '小型': 10, '2小': 4, '3小': 2, 'オレンジ': 15, '青': 16, '白': 32, '大': 6, '特大': 2 },
+            '5台型': { '軽': 40, '小型': 10, '2小': 3, '3小': 2, 'オレンジ': 15, '青': 16, '白': 30, '大': 6, '特大': 2 },
+            '6台型': { '軽': 39, '小型': 10, '2小': 12, '3小': 2, 'オレンジ': 14, '青': 10, '白': 30, '大': 6, '特大': 2 },
+            '7台型': { '軽': 43, '小型': 10, '2小': 12, '3小': 2, 'オレンジ': 14, '青': 10, '白': 29, '大': 5, '特大': 1 },
+            '8台型': { '軽': 47, '小型': 10, '2小': 12, '3小': 3, 'オレンジ': 12, '青': 10, '白': 27, '大': 5, '特大': 1 }
+        };
+
+        document.getElementById('csvFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const text = event.target.result;
+                processData(text);
+            };
+            reader.readAsText(file, 'Shift_JIS'); 
+        });
+
+        // 利用日フィルターが変更された時の処理
+        document.getElementById('dateFilter').addEventListener('change', function(e) {
+            const selectedKey = e.target.value;
+            if (selectedKey === 'all') {
+                document.getElementById('layoutFilter').value = '基本型';
+                document.getElementById('layoutDisplay').innerText = '';
+                renderSizeTable(globalSizeStatsAll, true); 
+                renderTimeTable(globalTimeStatsAll);
+                document.getElementById('irregularSection').style.display = 'none'; 
+            } else {
+                const sizeStats = globalSizeStatsByCombo[selectedKey] || {};
+                const dayData = globalDailyStats[selectedKey];
+                let layoutName = '基本型';
+                
+                if (dayData && (dayData.kakutei + dayData.machi) >= 100) {
+                    const keiCount = sizeStats['軽'] || 0;
+                    const kogataCount = sizeStats['小型'] || 0;
+                    const keiKogataSum = keiCount + kogataCount;
+
+                    if (keiKogataSum >= 58) layoutName = '8台型';
+                    else if (keiKogataSum >= 54) layoutName = '7台型';
+                    else if (keiKogataSum >= 51) layoutName = '5台型'; 
+                    else if (keiKogataSum >= 47) layoutName = '4台型'; 
+                    else if (keiKogataSum >= 42) layoutName = '3台型'; 
+                    else if (keiKogataSum >= 39) layoutName = '2台型'; 
+                    else if (keiKogataSum >= 34) layoutName = '1台型';
+                }
+                
+                document.getElementById('layoutFilter').value = layoutName;
+                document.getElementById('layoutDisplay').innerText = `（自動判定：${layoutName}）`;
+
+                renderSizeTable(sizeStats, false); 
+                renderTimeTable(globalTimeStatsByCombo[selectedKey] || {});
+                renderIrregularTable(selectedKey); 
+            }
+        });
+
+        // レイアウト比較プルダウンが変更された時の処理
+        document.getElementById('layoutFilter').addEventListener('change', function(e) {
+            const selectedKey = document.getElementById('dateFilter').value;
+            if (selectedKey === 'all') {
+                renderSizeTable(globalSizeStatsAll, true); 
+            } else {
+                renderSizeTable(globalSizeStatsByCombo[selectedKey] || {}, false); 
+            }
+        });
+
+        // CSVパース処理
+        function parseCSV(text) {
+            const result = [];
+            let row = [];
+            let inQuotes = false;
+            let value = '';
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                if (char === '"') {
+                    if (inQuotes && text[i+1] === '"') {
+                        value += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    row.push(value);
+                    value = '';
+                } else if ((char === '\n' || char === '\r') && !inQuotes) {
+                    if (char === '\r' && text[i+1] === '\n') i++;
+                    row.push(value);
+                    result.push(row);
+                    row = [];
+                    value = '';
+                } else {
+                    value += char;
+                }
+            }
+            if (row.length > 0 || value !== '') {
+                row.push(value);
+                result.push(row);
+            }
+            return result;
+        }
+
+        function processData(csvText) {
+            const rows = parseCSV(csvText);
+            if (!rows || rows.length <= 1) return alert('データが空か、正しくないCSVです。');
+
+            globalDailyStats = {};
+            globalSizeStatsAll = {};
+            globalSizeStatsByCombo = {};
+            globalTimeStatsAll = {};
+            globalTimeStatsByCombo = {};
+            globalIrregularData = []; 
+            globalCustomerStats = {}; 
+
+            const headers = rows[0];
+            if (!headers) return;
+            
+            let bookingColIdx = headers.findIndex(h => h && (h.includes('申込') || h.includes('受付') || h.includes('登録')));
+            if (bookingColIdx === -1) {
+                bookingColIdx = headers.findIndex((h, idx) => idx !== 0 && h && h.includes('予約'));
+            }
+
+            let nameColIdx = headers.findIndex(h => h && (h.includes('氏名') || h.includes('名前') || h === '名' || h.includes('申込者')));
+            let carModelColIdx = headers.findIndex(h => h && (h.includes('車種') || h.includes('車名') || h.includes('車両')));
+            let emailColIdx = headers.findIndex(h => h && (h.includes('メール') || h.includes('mail') || h.includes('アドレス') || h.includes('Mail')));
+
+            let tagColIdx = headers.findIndex(h => h && h.includes('管理用タグ'));
+            if (tagColIdx === -1) tagColIdx = 3;
+
+            for (let i = 1; i < rows.length; i++) {
+                const cols = rows[i];
+                if (!cols || cols.length <= 1) continue; 
+                if (!cols[0]) continue; 
+
+                const dateTimeStr = cols[0].trim();
+                if (!dateTimeStr) continue;
+
+                let rawEventName = cols[1] ? cols[1].trim() : 'イベント名なし';
+                const statusVal = cols[8] ? cols[8].trim() : '';
+                const sizeVal = cols[10] ? cols[10].trim() : ''; // K列 (index 10)
+                const tagVal = cols[tagColIdx] ? cols[tagColIdx].trim() : '';
+
+                const eventName = rawEventName.replace(/[  ]*[（(]?\d+台[）)]?$/g, '');
+
+                const dateMatch = dateTimeStr.match(/^\d{4}[-/]\d{2}[-/]\d{2}/);
+                if (!dateMatch) continue;
+                const dateVal = dateMatch[0].replace(/\//g, '-');
+
+                let bookingDateVal = "不明";
+                if (bookingColIdx !== -1 && cols[bookingColIdx]) {
+                    const bMatch = cols[bookingColIdx].trim().match(/^\d{4}[-/]\d{2}[-/]\d{2}/);
+                    if (bMatch) bookingDateVal = bMatch[0].replace(/\//g, '-');
+                }
+
+                const comboKey = `${dateVal}_${eventName}`;
+
+                if (!globalDailyStats[comboKey]) {
+                    globalDailyStats[comboKey] = { 
+                        date: dateVal, 
+                        eventName: eventName, 
+                        kakutei: 0, machi: 0, cancel: 0,
+                        daiKakutei: 0,
+                        tokudaiKakutei: 0,
+                        bookingTimeline: {},
+                        details: [] 
+                    };
+                }
+
+                if (!globalDailyStats[comboKey].bookingTimeline[bookingDateVal]) {
+                    globalDailyStats[comboKey].bookingTimeline[bookingDateVal] = { kakutei: 0, cancel: 0 };
+                }
+
+                if (!globalSizeStatsByCombo[comboKey]) globalSizeStatsByCombo[comboKey] = {};
+                if (!globalTimeStatsByCombo[comboKey]) globalTimeStatsByCombo[comboKey] = {};
+
+                // 到着時間（Q～W列：index 16～22）の結合取得
+                let timeArr = [];
+                for (let colIdx = 16; colIdx <= 22; colIdx++) {
+                    if (cols[colIdx] && cols[colIdx].trim()) {
+                        timeArr.push(cols[colIdx].trim());
+                    }
+                }
+                const timeValCombined = timeArr.length > 0 ? timeArr.join(' / ') : '-';
+                const timeValSingle = timeArr.length > 0 ? timeArr[0] : '';
+
+                // 名前（E列: index 4）
+                const nameVal = (cols[4] && cols[4].trim()) ? cols[4].trim() : ((nameColIdx !== -1 && cols[nameColIdx]) ? cols[nameColIdx].trim() : '-');
+                // 車種名（X列: index 23）
+                const carModelVal = (cols[23] && cols[23].trim()) ? cols[23].trim() : ((carModelColIdx !== -1 && cols[carModelColIdx]) ? cols[carModelColIdx].trim() : '-');
+
+                let isCancelled = false;
+                if (statusVal.includes('確定')) {
+                    globalDailyStats[comboKey].kakutei++;
+                    globalDailyStats[comboKey].bookingTimeline[bookingDateVal].kakutei++;
+                    
+                    if (sizeVal === '大') {
+                        globalDailyStats[comboKey].daiKakutei++;
+                    } else if (sizeVal === '特大') {
+                        globalDailyStats[comboKey].tokudaiKakutei++;
+                    }
+                } else if (statusVal.includes('承認待ち') || statusVal.includes('承認待')) {
+                    globalDailyStats[comboKey].machi++;
+                } else if (statusVal.includes('キャンセル')) {
+                    globalDailyStats[comboKey].cancel++;
+                    globalDailyStats[comboKey].bookingTimeline[bookingDateVal].cancel++;
+                    isCancelled = true;
+                }
+
+                if (!isCancelled) {
+                    // モーダル用の詳細リストへ格納
+                    globalDailyStats[comboKey].details.push({
+                        name: nameVal,
+                        time: timeValCombined,
+                        carModel: carModelVal,
+                        size: sizeVal || '-'
+                    });
+
+                    if (sizeVal) {
+                        globalSizeStatsAll[sizeVal] = (globalSizeStatsAll[sizeVal] || 0) + 1;
+                        globalSizeStatsByCombo[comboKey][sizeVal] = (globalSizeStatsByCombo[comboKey][sizeVal] || 0) + 1;
+                    }
+                    
+                    if (timeValSingle) {
+                        const sizeKey = TARGET_SIZE_ORDER.includes(sizeVal) ? sizeVal : 'その他';
+
+                        if (!globalTimeStatsAll[timeValSingle]) {
+                            globalTimeStatsAll[timeValSingle] = { total: 0 };
+                            TARGET_SIZE_ORDER.forEach(s => globalTimeStatsAll[timeValSingle][s] = 0);
+                            globalTimeStatsAll[timeValSingle]['その他'] = 0;
+                        }
+                        globalTimeStatsAll[timeValSingle][sizeKey]++;
+                        globalTimeStatsAll[timeValSingle].total++;
+
+                        if (!globalTimeStatsByCombo[comboKey][timeValSingle]) {
+                            globalTimeStatsByCombo[comboKey][timeValSingle] = { total: 0 };
+                            TARGET_SIZE_ORDER.forEach(s => globalTimeStatsByCombo[comboKey][timeValSingle][s] = 0);
+                            globalTimeStatsByCombo[comboKey][timeValSingle]['その他'] = 0;
+                        }
+                        globalTimeStatsByCombo[comboKey][timeValSingle][sizeKey]++;
+                        globalTimeStatsByCombo[comboKey][timeValSingle].total++;
+                    }
+
+                    if (tagVal !== '') {
+                        let combinedCarNumber = '-';
+                        if ((cols[24] && cols[24].trim()) || (cols[25] && cols[25].trim())) {
+                            const area = cols[24] ? cols[24].trim() : '';
+                            const digits = cols[25] ? cols[25].trim() : '';
+                            combinedCarNumber = `${area} ${digits}`.trim();
+                        }
+
+                        globalIrregularData.push({
+                            comboKey: comboKey,
+                            name: nameVal,
+                            carModel: carModelVal,
+                            carSize: sizeVal || '-',
+                            carNumber: combinedCarNumber,
+                            arrivalTime: timeValCombined,
+                            tag: tagVal
+                        });
+                    }
+
+                    if (emailColIdx !== -1 && cols[emailColIdx]) {
+                        const email = cols[emailColIdx].trim();
+                        if (email) {
+                            if (!globalCustomerStats[email]) {
+                                globalCustomerStats[email] = { name: nameVal, count: 0 };
+                            }
+                            globalCustomerStats[email].count++;
+                        }
+                    }
+                }
+            }
+
+            renderSplitDailyTables(globalDailyStats);
+            setupDateFilter(globalDailyStats);
+            
+            document.getElementById('layoutFilter').value = '基本型';
+            document.getElementById('layoutDisplay').innerText = '';
+            
+            renderSizeTable(globalSizeStatsAll, true); 
+            renderTimeTable(globalTimeStatsAll);
+            renderTopCustomersTable(globalCustomerStats); 
+            
+            document.getElementById('timelineModal').style.display = 'none'; 
+            document.getElementById('largeCarModal').style.display = 'none';
+            document.getElementById('irregularSection').style.display = 'none'; 
+            document.getElementById('resultArea').style.display = 'block';
+        }
+
+        function renderSplitDailyTables(dailyStats) {
+            const futureTbody = document.getElementById('futureDateTable').getElementsByTagName('tbody')[0];
+            const pastTbody = document.getElementById('pastDateTable').getElementsByTagName('tbody')[0];
+            futureTbody.innerHTML = '';
+            pastTbody.innerHTML = '';
+
+            const now = new Date();
+            const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const sortedKeys = Object.keys(dailyStats).sort();
+
+            sortedKeys.forEach(comboKey => {
+                const data = dailyStats[comboKey];
+                const activeTotal = data.kakutei + data.machi;
+                const encodedKey = encodeURIComponent(comboKey);
+
+                let totalCellBg = '';
+                if (data.date >= todayStr && activeTotal > 100) {
+                    totalCellBg = ' style="background-color: #fef08a; color: #856404;"'; 
+                }
+
+                const rowHtml = `
+                    <tr>
+                        <td>${data.date}</td>
+                        <td>
+                            <span class="event-name" onclick="showEventTimeline('${encodedKey}')" title="クリックで申込推移を表示">${data.eventName}</span>
+                            <span class="size-badge" onclick="showLargeCarDetails('${encodedKey}')" title="クリックで予約詳細を表示">(大:${data.daiKakutei || 0} 特大:${data.tokudaiKakutei || 0})</span>
+                        </td>
+                        <td><span class="status-kakutei">${data.kakutei}</span></td>
+                        <td><span class="status-machi">${data.machi}</span></td>
+                        <td><span class="status-cancel">${data.cancel}</span></td>
+                        <td${totalCellBg}><strong>${activeTotal} 件</strong></td>
+                    </tr>
+                `;
+
+                if (data.date >= todayStr) {
+                    futureTbody.insertAdjacentHTML('beforeend', rowHtml);
+                } else {
+                    pastTbody.insertAdjacentHTML('afterbegin', rowHtml);
+                }
+            });
+        }
+
+        function setupDateFilter(dailyStats) {
+            const filter = document.getElementById('dateFilter');
+            filter.innerHTML = '<option value="all">★全期間合計</option>';
+
+            const now = new Date();
+            const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+            const allKeys = Object.keys(dailyStats);
+            const futureKeys = allKeys.filter(k => dailyStats[k].date >= todayStr).sort();
+            const pastKeys = allKeys.filter(k => dailyStats[k].date < todayStr).sort().reverse();
+            const finalSortedKeys = futureKeys.concat(pastKeys);
+
+            finalSortedKeys.forEach(comboKey => {
+                const option = document.createElement('option');
+                option.value = comboKey;
+                option.innerText = `${dailyStats[comboKey].date} ［${dailyStats[comboKey].eventName}］`;
+                filter.appendChild(option);
+            });
+        }
+
+        function renderIrregularTable(selectedKey) {
+            const tbody = document.getElementById('irregularTable').getElementsByTagName('tbody')[0];
+            tbody.innerHTML = '';
+            
+            const filtered = globalIrregularData.filter(d => d.comboKey === selectedKey);
+            const section = document.getElementById('irregularSection');
+            
+            if (filtered.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            
+            filtered.forEach(d => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td style="text-align:left; font-weight:bold; white-space:nowrap;">${d.name}</td>
+                    <td style="text-align:left;">${d.carModel}</td>
+                    <td><span style="font-size:11px; background-color:#edf2f7; padding:2px 6px; border-radius:4px; font-weight:500;">${d.carSize}</span></td>
+                    <td style="white-space:nowrap;">${d.carNumber}</td>
+                    <td style="white-space:nowrap; font-weight:500;">${d.arrivalTime}</td>
+                    <td style="text-align:left; color:#d35400; font-weight:bold; background-color:#fff5f5; border-left:3px solid #d35400;">${d.tag}</td>
+                `;
+            });
+            
+            section.style.display = 'block';
+        }
+
+        function showEventTimeline(encodedKey) {
+            const comboKey = decodeURIComponent(encodedKey);
+            const data = globalDailyStats[comboKey];
+            if (!data) return;
+
+            const tbody = document.getElementById('timelineModal').getElementsByTagName('tbody')[0];
+            tbody.innerHTML = '';
+            document.getElementById('timelineTitle').innerText = `📈 「${data.eventName}」 の申込推移`;
+
+            const timeline = data.bookingTimeline;
+            const bookingDates = Object.keys(timeline).sort(); 
+            let cumulativeTotal = 0; 
+
+            bookingDates.forEach(bDate => {
+                const stats = timeline[bDate];
+                cumulativeTotal += stats.kakutei;
+
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td style="font-weight:bold; color:#2c3e50;">${bDate}</td>
+                    <td><span class="status-kakutei">${stats.kakutei}</span></td>
+                    <td><span class="status-cancel">${stats.cancel}</span></td>
+                    <td style="font-weight:bold; color:#2b6cb0; background-color:#ebf8ff;">${cumulativeTotal} 件</td>
+                `;
+            });
+
+            if (bookingDates.length === 0) {
+                const row = tbody.insertRow();
+                const cell = row.insertCell(0);
+                cell.colSpan = 4;
+                cell.innerText = '申込日のデータがありません';
+                cell.style.textAlign = 'center';
+            }
+
+            document.getElementById('timelineModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('timelineModal').style.display = 'none';
+        }
+
+        // 大・特大（予約詳細）モーダルの表示処理
+        function showLargeCarDetails(encodedKey) {
+            const comboKey = decodeURIComponent(encodedKey);
+            currentLargeCarComboKey = comboKey;
+            const data = globalDailyStats[comboKey];
+            if (!data) return;
+
+            document.getElementById('largeCarTitle').innerText = `🚚 「${data.eventName}」 予約車両一覧 (${data.date})`;
+            
+            filterLargeCarModal('large');
+            document.getElementById('largeCarModal').style.display = 'flex';
+        }
+
+        function filterLargeCarModal(mode) {
+            if (!currentLargeCarComboKey) return;
+            const data = globalDailyStats[currentLargeCarComboKey];
+            if (!data || !data.details) return;
+
+            const btnLarge = document.getElementById('btnFilterLarge');
+            const btnAll = document.getElementById('btnFilterAll');
+
+            if (mode === 'large') {
+                btnLarge.style.backgroundColor = '#2980b9';
+                btnLarge.style.color = 'white';
+                btnLarge.style.borderColor = '#2980b9';
+                btnLarge.style.fontWeight = 'bold';
+
+                btnAll.style.backgroundColor = '#f8f9fa';
+                btnAll.style.color = '#333';
+                btnAll.style.borderColor = '#ccc';
+                btnAll.style.fontWeight = 'normal';
+            } else {
+                btnAll.style.backgroundColor = '#2980b9';
+                btnAll.style.color = 'white';
+                btnAll.style.borderColor = '#2980b9';
+                btnAll.style.fontWeight = 'bold';
+
+                btnLarge.style.backgroundColor = '#f8f9fa';
+                btnLarge.style.color = '#333';
+                btnLarge.style.borderColor = '#ccc';
+                btnLarge.style.fontWeight = 'normal';
+            }
+
+            const tbody = document.getElementById('largeCarTable').getElementsByTagName('tbody')[0];
+            tbody.innerHTML = '';
+
+            let filteredDetails = data.details;
+            if (mode === 'large') {
+                filteredDetails = data.details.filter(item => item.size === '大' || item.size === '特大');
+            }
+
+            if (filteredDetails.length === 0) {
+                const row = tbody.insertRow();
+                const cell = row.insertCell(0);
+                cell.colSpan = 4;
+                cell.innerText = mode === 'large' ? '該当する「大」「特大」の予約はありません。' : '予約データがありません。';
+                cell.style.textAlign = 'center';
+                cell.style.color = '#7f8c8d';
+                cell.style.padding = '15px';
+                return;
+            }
+
+            filteredDetails.forEach(item => {
+                const row = tbody.insertRow();
+                
+                let sizeBadgeStyle = 'background-color: #edf2f7; color: #2d3748;';
+                if (item.size === '大') {
+                    sizeBadgeStyle = 'background-color: #ebf8ff; color: #2b6cb0; border: 1px solid #bee3f8; font-weight: bold;';
+                } else if (item.size === '特大') {
+                    sizeBadgeStyle = 'background-color: #fff5f5; color: #c53030; border: 1px solid #feb2b2; font-weight: bold;';
+                }
+
+                row.innerHTML = `
+                    <td style="font-weight: bold; color: #2c3e50; white-space: nowrap;">${item.name}</td>
+                    <td style="white-space: nowrap;">${item.time}</td>
+                    <td>${item.carModel}</td>
+                    <td style="text-align: center;"><span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; ${sizeBadgeStyle}">${item.size}</span></td>
+                `;
+            });
+        }
+
+        function closeLargeCarModal() {
+            document.getElementById('largeCarModal').style.display = 'none';
+        }
+
+        function renderSizeTable(sizeStats, isAll = false) {
+            const tbody = document.getElementById('carTypeTable').getElementsByTagName('tbody')[0];
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            const selectedLayout = document.getElementById('layoutFilter').value;
+            const layoutCapacities = LAYOUT_MASTER[selectedLayout] || {};
+            const currentSizes = sizeStats ? Object.keys(sizeStats) : [];
+            
+            const displaySizes = [...TARGET_SIZE_ORDER];
+            currentSizes.forEach(s => {
+                if (s && !displaySizes.includes(s)) {
+                    displaySizes.push(s);
+                }
+            });
+
+            let sumKeiToTokudai = 0;
+            let sumCapacityKeiToTokudai = 0;
+            const targetSizesForSum = ['軽', '小型', '2小', '3小', 'オレンジ', '青', '白', '大', '特大'];
+
+            displaySizes.forEach(size => {
+                const count = sizeStats[size] || 0;
+                const capacity = layoutCapacities[size] !== undefined ? layoutCapacities[size] : '-';
+
+                if (targetSizesForSum.includes(size)) {
+                    sumKeiToTokudai += count;
+                    if (typeof capacity === 'number') {
+                        sumCapacityKeiToTokudai += capacity;
+                    }
+                }
+
+                let alertMark = '';
+                let isFull = false;
+                if (!isAll && typeof capacity === 'number' && capacity > 0) {
+                    if (count >= capacity && (size === '大' || size === '特大')) {
+                        alertMark = ' 🈵'; 
+                        isFull = true;
+                    }
+                }
+
+                const row = tbody.insertRow();
+                const cellName = row.insertCell(0);
+                const cellCount = row.insertCell(1);
+                const cellCapacity = row.insertCell(2);
+                const cellDiff = row.insertCell(3);
+
+                cellName.innerText = size;
+                cellCount.innerText = count + ' 件' + alertMark; 
+                cellCapacity.innerText = typeof capacity === 'number' ? capacity + ' 台' : '-';
+
+                // 予約件数 - 収容可能台数 の差分計算
+                if (typeof capacity === 'number') {
+                    const diff = count - capacity;
+                    if (diff > 0) {
+                        cellDiff.innerText = `${diff}台超過`;
+                        cellDiff.style.color = '#c0392b';
+                        cellDiff.style.fontWeight = 'bold';
+                    } else {
+                        const remaining = Math.abs(diff);
+                        cellDiff.innerText = `残り${remaining}台`;
+                        if (remaining === 0) {
+                            cellDiff.style.color = '#e67e22';
+                            cellDiff.style.fontWeight = 'bold';
+                        } else {
+                            cellDiff.style.color = '#27ae60';
+                        }
+                    }
+                } else {
+                    cellDiff.innerText = '-';
+                }
+
+                cellName.style.textAlign = 'left';
+                cellCount.style.textAlign = 'right';
+                cellCapacity.style.textAlign = 'right';
+                cellDiff.style.textAlign = 'right';
+                
+                if (isFull) {
+                    cellCount.style.fontWeight = 'bold';
+                    cellCount.style.color = '#c0392b';
+                    cellCapacity.style.fontWeight = 'bold';
+                    cellCapacity.style.color = '#c0392b';
+                    row.style.backgroundColor = '#fff5f5';
+                }
+            });
+
+            // 最下部に合計行を出力する処理
+            const totalRow = tbody.insertRow();
+            totalRow.style.backgroundColor = '#edf2f7'; 
+            totalRow.style.fontWeight = 'bold';
+
+            const totalNameCell = totalRow.insertCell(0);
+            const totalCountCell = totalRow.insertCell(1);
+            const totalCapacityCell = totalRow.insertCell(2);
+            const totalDiffCell = totalRow.insertCell(3);
+
+            totalNameCell.innerText = '合計（軽～特大）';
+            totalCountCell.innerText = sumKeiToTokudai + ' 件';
+            totalCapacityCell.innerText = sumCapacityKeiToTokudai + ' 台';
+
+            const totalDiff = sumKeiToTokudai - sumCapacityKeiToTokudai;
+            if (totalDiff > 0) {
+                totalDiffCell.innerText = `${totalDiff}台超過`;
+                totalDiffCell.style.color = '#c0392b';
+            } else {
+                const totalRemaining = Math.abs(totalDiff);
+                totalDiffCell.innerText = `残り${totalRemaining}台`;
+                if (totalRemaining === 0) {
+                    totalDiffCell.style.color = '#e67e22';
+                } else {
+                    totalDiffCell.style.color = '#27ae60';
+                }
+            }
+
+            totalNameCell.style.textAlign = 'left';
+            totalCountCell.style.textAlign = 'right';
+            totalCapacityCell.style.textAlign = 'right';
+            totalDiffCell.style.textAlign = 'right';
+        }
+
+        // 到着予定時刻別の集計テーブル描画処理
+        function renderTimeTable(timeStats) {
+            const tbody = document.getElementById('timeTable').getElementsByTagName('tbody')[0];
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            const sortedTimes = Object.keys(timeStats).sort();
+            sortedTimes.forEach(time => {
+                const stats = timeStats[time];
+                const row = tbody.insertRow();
+                
+                let html = `<td style="font-weight:bold; color:#2c3e50;">${time}</td>`;
+                TARGET_SIZE_ORDER.forEach(s => {
+                    html += `<td>${stats[s] || 0}</td>`;
+                });
+                html += `<td>${stats['その他'] || 0}</td>`;
+                html += `<td style="background-color: #f0fdf4; color: #166534; font-weight: bold;">${stats.total || 0}</td>`;
+                
+                row.innerHTML = html;
+            });
+        }
+
+        // 顧客ランキングテーブルの描画処理
+        function renderTopCustomersTable(customerStats) {
+            const tbody = document.getElementById('topCustomersTable').getElementsByTagName('tbody')[0];
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            const sortedCustomers = Object.keys(customerStats)
+                .map(email => ({
+                    email: email,
+                    name: customerStats[email].name,
+                    count: customerStats[email].count
+                }))
+                .sort((a, b) => b.count - a.count);
+
+            const top10 = sortedCustomers.slice(0, 10);
+
+            if (top10.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-muted" style="padding:20px;">有効な予約データがありません（またはメールアドレス列が見つかりません）</td></tr>';
+                return;
+            }
+
+            top10.forEach((cust, index) => {
+                const row = tbody.insertRow();
+                
+                let rankDisplay = index + 1;
+                if (rankDisplay === 1) rankDisplay = '🥇 1';
+                else if (rankDisplay === 2) rankDisplay = '🥈 2';
+                else if (rankDisplay === 3) rankDisplay = '🥉 3';
+
+                row.innerHTML = `
+                    <td><strong>${rankDisplay}</strong></td>
+                    <td style="text-align: left; font-weight: bold; color:#2c3e50;">${cust.name}</td>
+                    <td style="text-align: left; color: #666; font-size: 13px;">${cust.email}</td>
+                    <td style="text-align: right; font-weight: bold; background-color: #fffaf0;">${cust.count} 回</td>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
