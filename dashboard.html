@@ -341,6 +341,17 @@
             '8台型': { '軽': 47, '小型': 10, '2小': 12, '3小': 3, 'オレンジ': 12, '青': 10, '白': 27, '大': 5, '特大': 1 }
         };
 
+        // HTMLエスケープ用関数
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         document.getElementById('csvFile').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -609,11 +620,32 @@
             renderSplitDailyTables(globalDailyStats);
             setupDateFilter(globalDailyStats);
             
-            document.getElementById('layoutFilter').value = '基本型';
-            document.getElementById('layoutDisplay').innerText = '';
+            // --- 今日の選択肢を自動で初期選択する処理 ---
+            const now = new Date();
+            const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const dateFilter = document.getElementById('dateFilter');
             
-            renderSizeTable(globalSizeStatsAll, true); 
-            renderTimeTable(globalTimeStatsAll);
+            // プルダウンの中から「今日の日付」で始まる選択肢を探す
+            let todayValue = null;
+            for (let opt of dateFilter.options) {
+                if (opt.value.startsWith(todayStr)) {
+                    todayValue = opt.value;
+                    break;
+                }
+            }
+
+            // 今日の予約データが存在すれば、初期選択にして集計画面を今日に切り替える
+            if (todayValue) {
+                dateFilter.value = todayValue;
+                dateFilter.dispatchEvent(new Event('change')); // 集計表示を更新
+            } else {
+                // 今日のデータがない場合は従来通り全体表示
+                document.getElementById('layoutFilter').value = '基本型';
+                document.getElementById('layoutDisplay').innerText = '';
+                renderSizeTable(globalSizeStatsAll, true); 
+                renderTimeTable(globalTimeStatsAll);
+            }
+
             renderTopCustomersTable(globalCustomerStats); 
             
             document.getElementById('timelineModal').style.display = 'none'; 
@@ -642,11 +674,13 @@
                     totalCellBg = ' style="background-color: #fef08a; color: #856404;"'; 
                 }
 
+                const escapedEventName = escapeHtml(data.eventName);
+
                 const rowHtml = `
                     <tr>
                         <td>${data.date}</td>
                         <td>
-                            <span class="event-name" onclick="showEventTimeline('${encodedKey}')" title="クリックで申込推移を表示">${data.eventName}</span>
+                            <span class="event-name" onclick="showEventTimeline('${encodedKey}')" title="クリックで申込推移を表示">${escapedEventName}</span>
                             <span class="size-badge" onclick="showLargeCarDetails('${encodedKey}')" title="クリックで予約詳細を表示">(大:${data.daiKakutei || 0} 特大:${data.tokudaiKakutei || 0})</span>
                         </td>
                         <td><span class="status-kakutei">${data.kakutei}</span></td>
@@ -699,12 +733,12 @@
             filtered.forEach(d => {
                 const row = tbody.insertRow();
                 row.innerHTML = `
-                    <td style="text-align:left; font-weight:bold; white-space:nowrap;">${d.name}</td>
-                    <td style="text-align:left;">${d.carModel}</td>
-                    <td><span style="font-size:11px; background-color:#edf2f7; padding:2px 6px; border-radius:4px; font-weight:500;">${d.carSize}</span></td>
-                    <td style="white-space:nowrap;">${d.carNumber}</td>
-                    <td style="white-space:nowrap; font-weight:500;">${d.arrivalTime}</td>
-                    <td style="text-align:left; color:#d35400; font-weight:bold; background-color:#fff5f5; border-left:3px solid #d35400;">${d.tag}</td>
+                    <td style="text-align:left; font-weight:bold; white-space:nowrap;">${escapeHtml(d.name)}</td>
+                    <td style="text-align:left;">${escapeHtml(d.carModel)}</td>
+                    <td><span style="font-size:11px; background-color:#edf2f7; padding:2px 6px; border-radius:4px; font-weight:500;">${escapeHtml(d.carSize)}</span></td>
+                    <td style="white-space:nowrap;">${escapeHtml(d.carNumber)}</td>
+                    <td style="white-space:nowrap; font-weight:500;">${escapeHtml(d.arrivalTime)}</td>
+                    <td style="text-align:left; color:#d35400; font-weight:bold; background-color:#fff5f5; border-left:3px solid #d35400;">${escapeHtml(d.tag)}</td>
                 `;
             });
             
@@ -825,10 +859,10 @@
                 }
 
                 row.innerHTML = `
-                    <td style="font-weight: bold; color: #2c3e50; white-space: nowrap;">${item.name}</td>
-                    <td style="white-space: nowrap;">${item.time}</td>
-                    <td>${item.carModel}</td>
-                    <td style="text-align: center;"><span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; ${sizeBadgeStyle}">${item.size}</span></td>
+                    <td style="font-weight: bold; color: #2c3e50; white-space: nowrap;">${escapeHtml(item.name)}</td>
+                    <td style="white-space: nowrap;">${escapeHtml(item.time)}</td>
+                    <td>${escapeHtml(item.carModel)}</td>
+                    <td style="text-align: center;"><span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; ${sizeBadgeStyle}">${escapeHtml(item.size)}</span></td>
                 `;
             });
         }
@@ -967,7 +1001,7 @@
                 const stats = timeStats[time];
                 const row = tbody.insertRow();
                 
-                let html = `<td style="font-weight:bold; color:#2c3e50;">${time}</td>`;
+                let html = `<td style="font-weight:bold; color:#2c3e50;">${escapeHtml(time)}</td>`;
                 TARGET_SIZE_ORDER.forEach(s => {
                     html += `<td>${stats[s] || 0}</td>`;
                 });
@@ -1009,8 +1043,8 @@
 
                 row.innerHTML = `
                     <td><strong>${rankDisplay}</strong></td>
-                    <td style="text-align: left; font-weight: bold; color:#2c3e50;">${cust.name}</td>
-                    <td style="text-align: left; color: #666; font-size: 13px;">${cust.email}</td>
+                    <td style="text-align: left; font-weight: bold; color:#2c3e50;">${escapeHtml(cust.name)}</td>
+                    <td style="text-align: left; color: #666; font-size: 13px;">${escapeHtml(cust.email)}</td>
                     <td style="text-align: right; font-weight: bold; background-color: #fffaf0;">${cust.count} 回</td>
                 `;
             });
