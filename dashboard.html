@@ -287,7 +287,7 @@
             </div>
         </div>
 
-        <!-- 車両詳細モーダル -->
+        <!-- 大・特大 車両詳細モーダル -->
         <div id="largeCarModal" class="modal-overlay" onclick="closeLargeCarModal()">
             <div class="modal-content" onclick="event.stopPropagation()">
                 <span class="close-btn" onclick="closeLargeCarModal()">&times;</span>
@@ -313,12 +313,34 @@
             </div>
         </div>
 
+        <!-- サイズ別予約車両モーダル -->
+        <div id="sizeDetailsModal" class="modal-overlay" onclick="closeSizeDetailsModal()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <span class="close-btn" onclick="closeSizeDetailsModal()">&times;</span>
+                <h2 class="timeline" id="sizeDetailsTitle" style="color: #2c3e50; border-left-color: #2c3e50;">🚗 予約車両一覧</h2>
+                <div class="table-responsive">
+                    <table class="table-left" id="sizeDetailsTable">
+                        <thead>
+                            <tr>
+                                <th style="white-space: nowrap;">名前</th>
+                                <th style="white-space: nowrap;">到着時間</th>
+                                <th style="white-space: nowrap;">車種名</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script>
         let globalDailyStats = {};
         let globalSizeStatsAll = {};
         let globalSizeStatsByCombo = {};
+        let globalSizeDetailsAll = {};
+        let globalSizeDetailsByCombo = {};
         let globalTimeStatsAll = {};
         let globalTimeStatsByCombo = {};
         let globalIrregularData = []; 
@@ -453,6 +475,8 @@
             globalDailyStats = {};
             globalSizeStatsAll = {};
             globalSizeStatsByCombo = {};
+            globalSizeDetailsAll = {};
+            globalSizeDetailsByCombo = {};
             globalTimeStatsAll = {};
             globalTimeStatsByCombo = {};
             globalIrregularData = []; 
@@ -460,16 +484,13 @@
 
             const headers = rows[0];
             if (!headers) return;
-            
+
             let bookingColIdx = headers.findIndex(h => h && (h.includes('申込') || h.includes('受付') || h.includes('登録')));
             if (bookingColIdx === -1) {
                 bookingColIdx = headers.findIndex((h, idx) => idx !== 0 && h && h.includes('予約'));
             }
 
-            let nameColIdx = headers.findIndex(h => h && (h.includes('氏名') || h.includes('名前') || h === '名' || h.includes('申込者')));
-            let carModelColIdx = headers.findIndex(h => h && (h.includes('車種') || h.includes('車名') || h.includes('車両')));
             let emailColIdx = headers.findIndex(h => h && (h.includes('メール') || h.includes('mail') || h.includes('アドレス') || h.includes('Mail')));
-
             let tagColIdx = headers.findIndex(h => h && h.includes('管理用タグ'));
             if (tagColIdx === -1) tagColIdx = 3;
 
@@ -517,22 +538,25 @@
                 }
 
                 if (!globalSizeStatsByCombo[comboKey]) globalSizeStatsByCombo[comboKey] = {};
+                if (!globalSizeDetailsByCombo[comboKey]) globalSizeDetailsByCombo[comboKey] = {};
                 if (!globalTimeStatsByCombo[comboKey]) globalTimeStatsByCombo[comboKey] = {};
 
-                // 到着時間（Q～W列：index 16～22）の結合取得
-                let timeArr = [];
+                // 名前：E列 (index 4)
+                const nameVal = (cols[4] && cols[4].trim()) ? cols[4].trim() : '-';
+
+                // 到着時間：Q〜W列 (index 16〜22) の中から最初に見つかった値
+                let timeValCombined = '-';
+                let timeValSingle = '';
                 for (let colIdx = 16; colIdx <= 22; colIdx++) {
                     if (cols[colIdx] && cols[colIdx].trim()) {
-                        timeArr.push(cols[colIdx].trim());
+                        timeValCombined = cols[colIdx].trim();
+                        timeValSingle = cols[colIdx].trim();
+                        break; 
                     }
                 }
-                const timeValCombined = timeArr.length > 0 ? timeArr.join(' / ') : '-';
-                const timeValSingle = timeArr.length > 0 ? timeArr[0] : '';
 
-                // 名前（E列: index 4）
-                const nameVal = (cols[4] && cols[4].trim()) ? cols[4].trim() : ((nameColIdx !== -1 && cols[nameColIdx]) ? cols[nameColIdx].trim() : '-');
-                // 車種名（X列: index 23）
-                const carModelVal = (cols[23] && cols[23].trim()) ? cols[23].trim() : ((carModelColIdx !== -1 && cols[carModelColIdx]) ? cols[carModelColIdx].trim() : '-');
+                // 車種名：X列 (index 23)
+                const carModelVal = (cols[23] && cols[23].trim()) ? cols[23].trim() : '-';
 
                 let isCancelled = false;
                 if (statusVal.includes('確定')) {
@@ -553,17 +577,24 @@
                 }
 
                 if (!isCancelled) {
-                    // モーダル用の詳細リストへ格納
-                    globalDailyStats[comboKey].details.push({
+                    const detailObj = {
                         name: nameVal,
                         time: timeValCombined,
                         carModel: carModelVal,
                         size: sizeVal || '-'
-                    });
+                    };
+
+                    globalDailyStats[comboKey].details.push(detailObj);
 
                     if (sizeVal) {
                         globalSizeStatsAll[sizeVal] = (globalSizeStatsAll[sizeVal] || 0) + 1;
                         globalSizeStatsByCombo[comboKey][sizeVal] = (globalSizeStatsByCombo[comboKey][sizeVal] || 0) + 1;
+
+                        if (!globalSizeDetailsAll[sizeVal]) globalSizeDetailsAll[sizeVal] = [];
+                        globalSizeDetailsAll[sizeVal].push(detailObj);
+
+                        if (!globalSizeDetailsByCombo[comboKey][sizeVal]) globalSizeDetailsByCombo[comboKey][sizeVal] = [];
+                        globalSizeDetailsByCombo[comboKey][sizeVal].push(detailObj);
                     }
                     
                     if (timeValSingle) {
@@ -620,12 +651,11 @@
             renderSplitDailyTables(globalDailyStats);
             setupDateFilter(globalDailyStats);
             
-            // --- 今日の選択肢を自動で初期選択する処理 ---
+            // 今日の選択肢を自動選択
             const now = new Date();
             const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
             const dateFilter = document.getElementById('dateFilter');
             
-            // プルダウンの中から「今日の日付」で始まる選択肢を探す
             let todayValue = null;
             for (let opt of dateFilter.options) {
                 if (opt.value.startsWith(todayStr)) {
@@ -634,12 +664,10 @@
                 }
             }
 
-            // 今日の予約データが存在すれば、初期選択にして集計画面を今日に切り替える
             if (todayValue) {
                 dateFilter.value = todayValue;
-                dateFilter.dispatchEvent(new Event('change')); // 集計表示を更新
+                dateFilter.dispatchEvent(new Event('change'));
             } else {
-                // 今日のデータがない場合は従来通り全体表示
                 document.getElementById('layoutFilter').value = '基本型';
                 document.getElementById('layoutDisplay').innerText = '';
                 renderSizeTable(globalSizeStatsAll, true); 
@@ -650,6 +678,7 @@
             
             document.getElementById('timelineModal').style.display = 'none'; 
             document.getElementById('largeCarModal').style.display = 'none';
+            document.getElementById('sizeDetailsModal').style.display = 'none';
             document.getElementById('irregularSection').style.display = 'none'; 
             document.getElementById('resultArea').style.display = 'block';
         }
@@ -667,7 +696,8 @@
             sortedKeys.forEach(comboKey => {
                 const data = dailyStats[comboKey];
                 const activeTotal = data.kakutei + data.machi;
-                const encodedKey = encodeURIComponent(comboKey);
+                
+                const encodedKey = encodeURIComponent(comboKey).replace(/'/g, "%27");
 
                 let totalCellBg = '';
                 if (data.date >= todayStr && activeTotal > 100) {
@@ -786,7 +816,6 @@
             document.getElementById('timelineModal').style.display = 'none';
         }
 
-        // 大・特大（予約詳細）モーダルの表示処理
         function showLargeCarDetails(encodedKey) {
             const comboKey = decodeURIComponent(encodedKey);
             currentLargeCarComboKey = comboKey;
@@ -871,6 +900,56 @@
             document.getElementById('largeCarModal').style.display = 'none';
         }
 
+        // サイズ区分別 件数クリック時のモーダル表示処理（デコード処理を追加）
+        function showSizeDetailsModal(rawSizeKey) {
+            const sizeKey = decodeURIComponent(rawSizeKey);
+            const selectedComboKey = document.getElementById('dateFilter').value;
+            let list = [];
+
+            if (selectedComboKey === 'all') {
+                list = globalSizeDetailsAll[sizeKey] || [];
+            } else {
+                list = (globalSizeDetailsByCombo[selectedComboKey] && globalSizeDetailsByCombo[selectedComboKey][sizeKey]) ? globalSizeDetailsByCombo[selectedComboKey][sizeKey] : [];
+            }
+
+            // 到着時間の昇順ソート
+            const sortedList = [...list].sort((a, b) => {
+                const tA = a.time || '';
+                const tB = b.time || '';
+                return tA.localeCompare(tB, 'ja', { numeric: true });
+            });
+
+            document.getElementById('sizeDetailsTitle').innerText = `🚗 車サイズ「${sizeKey}」の予約車両一覧 (${sortedList.length}件)`;
+
+            const tbody = document.getElementById('sizeDetailsTable').getElementsByTagName('tbody')[0];
+            tbody.innerHTML = '';
+
+            if (sortedList.length === 0) {
+                const row = tbody.insertRow();
+                const cell = row.insertCell(0);
+                cell.colSpan = 3;
+                cell.innerText = '該当する予約データがありません。';
+                cell.style.textAlign = 'center';
+                cell.style.color = '#7f8c8d';
+                cell.style.padding = '15px';
+            } else {
+                sortedList.forEach(item => {
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td style="font-weight: bold; color: #2c3e50; white-space: nowrap; text-align: left;">${escapeHtml(item.name)}</td>
+                        <td style="white-space: nowrap;">${escapeHtml(item.time)}</td>
+                        <td style="text-align: left;">${escapeHtml(item.carModel)}</td>
+                    `;
+                });
+            }
+
+            document.getElementById('sizeDetailsModal').style.display = 'flex';
+        }
+
+        function closeSizeDetailsModal() {
+            document.getElementById('sizeDetailsModal').style.display = 'none';
+        }
+
         function renderSizeTable(sizeStats, isAll = false) {
             const tbody = document.getElementById('carTypeTable').getElementsByTagName('tbody')[0];
             if (!tbody) return;
@@ -918,10 +997,17 @@
                 const cellDiff = row.insertCell(3);
 
                 cellName.innerText = size;
-                cellCount.innerText = count + ' 件' + alertMark; 
+                
+                // 件数セルをクリック可能にする（エンコードして安全に受け渡し）
+                const encodedSize = encodeURIComponent(size).replace(/'/g, "%27");
+                if (count > 0) {
+                    cellCount.innerHTML = `<span class="event-name" onclick="showSizeDetailsModal('${encodedSize}')" title="クリックで車両詳細を表示">${count} 件</span>${alertMark}`;
+                } else {
+                    cellCount.innerText = '0 件' + alertMark;
+                }
+
                 cellCapacity.innerText = typeof capacity === 'number' ? capacity + ' 台' : '-';
 
-                // 予約件数 - 収容可能台数 の差分計算
                 if (typeof capacity === 'number') {
                     const diff = count - capacity;
                     if (diff > 0) {
