@@ -59,12 +59,11 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-20">
                 <div class="flex items-center space-x-3">
-                    <!-- 校章 / ロゴ画像エリア -->
-                    <div class="relative w-10 h-10 rounded-full overflow-hidden bg-tokai-gold flex items-center justify-center shadow flex-shrink-0">
-                        <img src="images/tokai_logo.png" alt="東海学園ロゴ" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/100x100/c5a059/1c2d5a?text=東海';">
+                    <!-- 校章 / ロゴ画像エリア（四角形に変更しサイズを拡大） -->
+                    <div class="relative w-12 h-12 sm:w-14 sm:h-14 rounded-md overflow-hidden bg-white p-1 flex items-center justify-center shadow flex-shrink-0 border border-tokai-gold/40">
+                        <img src="images/tokai_logo.jpg" alt="東海学園ロゴ" class="w-full h-full object-contain" onerror="this.onerror=null; this.src='https://placehold.co/100x100/c5a059/1c2d5a?text=東海';">
                     </div>
                     <div>
-                        <span class="block text-[10px] text-tokai-goldlight tracking-wider font-semibold">学校法人東海学園</span>
                         <h1 class="text-xs md:text-sm font-bold font-serif tracking-wide leading-tight">東海中学校・東海高等学校 東京同窓会</h1>
                     </div>
                 </div>
@@ -162,7 +161,7 @@
             </div>
 
             <!-- Enhanced Visual Progress Bar with Pins -->
-            <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner space-y-4">
+            <div id="progress-container" class="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner space-y-4">
                 <div class="flex flex-col sm:flex-row justify-between sm:items-end gap-2 border-b border-slate-200 pb-3">
                     <div>
                         <span class="text-xs font-bold text-tokai-gold uppercase tracking-wider block"><i class="fa-solid fa-chart-line mr-1"></i> 現在の寄付状況</span>
@@ -180,7 +179,7 @@
                 <div class="relative pt-6 pb-2">
                     <!-- Progress Bar Track -->
                     <div class="w-full bg-slate-200 rounded-full h-5 overflow-hidden relative shadow-inner">
-                        <div class="bg-gradient-to-r from-tokai-navy via-tokai-navylight to-tokai-gold h-5 rounded-full transition-all duration-1000" style="width: 14.7%"></div>
+                        <div id="progress-bar" class="bg-gradient-to-r from-tokai-navy via-tokai-navylight to-tokai-gold h-5 rounded-full transition-all duration-1000 ease-out" style="width: 0%;"></div>
                     </div>
 
                     <!-- Milestone Pin: 1st Phase Goal (8 Oku) -->
@@ -303,7 +302,7 @@
                         <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">寄付対象事業</h3>
                         <p class="text-slate-700 text-sm leading-relaxed mt-1">
                             老朽化した校舎・設備等の整備・保全・更新<br>
-                            <span class="text-xs text-slate-500">（対象設備：本館、明照殿、講堂、体育館、中学校舎、高校校舎、プール・弓道場棟、百志館、万代塀 等）</span>
+                            <span class="text-xs text-slate-500">（対象設備：本館、明照殿、講堂、体育館、中学校舎、高校校舎、プール・弓道場棟 等）</span>
                         </p>
                     </div>
                 </div>
@@ -337,17 +336,17 @@
                 </div>
             </div>
 
-            <!-- Facilities Grid -->
+            <!-- Facilities Grid (更新: 百志館・万代塀を削除し、高校校舎を中学校舎の右隣に配置) -->
             <div class="pt-6">
                 <h3 class="text-base font-serif font-bold text-tokai-navy mb-4 border-b pb-2 flex items-center">
                     <i class="fa-solid fa-building-columns text-tokai-gold mr-2"></i>
                     主な寄付対象施設
                 </h3>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                     <!-- 1. 本館 -->
                     <div class="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden hover:border-tokai-gold transition shadow-sm flex flex-col">
                         <div class="h-32 bg-slate-200 relative overflow-hidden">
-                            <img src="images/main_building.jpg" alt="本館" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/400x300/1c2d5a/ffffff?text=本館';">
+                            <img src="images/main_building.jpeg" alt="本館" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/400x300/1c2d5a/ffffff?text=本館';">
                         </div>
                         <div class="p-3 text-center">
                             <p class="text-xs sm:text-sm font-bold text-slate-800">本館</p>
@@ -357,7 +356,7 @@
                     <!-- 2. 明照殿 -->
                     <div class="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden hover:border-tokai-gold transition shadow-sm flex flex-col">
                         <div class="h-32 bg-slate-200 relative overflow-hidden">
-                            <img src="images/meishoden.jpg" alt="明照殿" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/400x300/1c2d5a/ffffff?text=明照殿';">
+                            <img src="images/meishoden.jpeg" alt="明照殿" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/400x300/1c2d5a/ffffff?text=明照殿';">
                         </div>
                         <div class="p-3 text-center">
                             <p class="text-xs sm:text-sm font-bold text-slate-800">明照殿</p>
@@ -367,7 +366,7 @@
                     <!-- 3. 講堂 -->
                     <div class="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden hover:border-tokai-gold transition shadow-sm flex flex-col">
                         <div class="h-32 bg-slate-200 relative overflow-hidden">
-                            <img src="images/auditorium.jpg" alt="講堂" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/400x300/1c2d5a/ffffff?text=講堂';">
+                            <img src="images/auditorium.jpeg" alt="講堂" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/400x300/1c2d5a/ffffff?text=講堂';">
                         </div>
                         <div class="p-3 text-center">
                             <p class="text-xs sm:text-sm font-bold text-slate-800">講堂</p>
@@ -377,56 +376,46 @@
                     <!-- 4. 体育館 -->
                     <div class="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden hover:border-tokai-gold transition shadow-sm flex flex-col">
                         <div class="h-32 bg-slate-200 relative overflow-hidden">
-                            <img src="images/gym.jpg" alt="体育館" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/400x300/1c2d5a/ffffff?text=体育館';">
+                            <img src="images/gym.jpeg" alt="体育館" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/400x300/1c2d5a/ffffff?text=体育館';">
                         </div>
                         <div class="p-3 text-center">
                             <p class="text-xs sm:text-sm font-bold text-slate-800">体育館</p>
                         </div>
                     </div>
 
-                    <!-- 5. 中学校舎・高校校舎 -->
+                    <!-- 5. 中学校舎 -->
                     <div class="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden hover:border-tokai-gold transition shadow-sm flex flex-col">
                         <div class="h-32 bg-slate-200 relative overflow-hidden">
-                            <img src="images/school_building.jpg" alt="中学校舎・高校校舎" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/400x300/1c2d5a/ffffff?text=校舎';">
+                            <img src="images/juniour_high_school_building.jpeg" alt="中学校舎" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/400x300/1c2d5a/ffffff?text=中学校舎';">
                         </div>
                         <div class="p-3 text-center">
-                            <p class="text-xs sm:text-sm font-bold text-slate-800">中学校舎・高校校舎</p>
+                            <p class="text-xs sm:text-sm font-bold text-slate-800">中学校舎</p>
                         </div>
                     </div>
 
-                    <!-- 6. プール・弓道場棟 -->
+                    <!-- 6. 高校校舎（中学校舎の右隣へ配置） -->
                     <div class="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden hover:border-tokai-gold transition shadow-sm flex flex-col">
                         <div class="h-32 bg-slate-200 relative overflow-hidden">
-                            <img src="images/pool_kyudo.jpg" alt="プール・弓道場棟" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/400x300/1c2d5a/ffffff?text=プール・弓道場';">
+                            <img src="images/high_school_building.jpeg" alt="高校校舎" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/400x300/1c2d5a/ffffff?text=高校校舎';">
                         </div>
                         <div class="p-3 text-center">
-                            <p class="text-xs sm:text-sm font-bold text-slate-800">プール・弓道場棟</p>
+                            <p class="text-xs sm:text-sm font-bold text-slate-800">高校校舎</p>
                         </div>
                     </div>
 
-                    <!-- 7. 百志館 -->
+                    <!-- 7. プール -->
                     <div class="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden hover:border-tokai-gold transition shadow-sm flex flex-col">
                         <div class="h-32 bg-slate-200 relative overflow-hidden">
-                            <img src="images/hyakushikan.jpg" alt="百志館" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/400x300/1c2d5a/ffffff?text=百志館';">
+                            <img src="images/pool.jpeg" alt="プール" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/400x300/1c2d5a/ffffff?text=プール・弓道場';">
                         </div>
                         <div class="p-3 text-center">
-                            <p class="text-xs sm:text-sm font-bold text-slate-800">百志館</p>
-                        </div>
-                    </div>
-
-                    <!-- 8. 万代塀 等 -->
-                    <div class="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden hover:border-tokai-gold transition shadow-sm flex flex-col">
-                        <div class="h-32 bg-slate-200 relative overflow-hidden">
-                            <img src="images/bandai_bei.jpg" alt="万代塀 等" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/400x300/1c2d5a/ffffff?text=万代塀';">
-                        </div>
-                        <div class="p-3 text-center">
-                            <p class="text-xs sm:text-sm font-bold text-slate-800">万代塀 等</p>
+                            <p class="text-xs sm:text-sm font-bold text-slate-800">プール</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Anniversary Logo Section -->
+            <!-- Anniversary Logo Section（青い丸の囲みを削除） -->
             <div class="bg-slate-50 rounded-xl p-6 sm:p-8 shadow-sm border border-slate-200 mt-8">
                 <div class="flex flex-col md:flex-row items-center gap-8">
                     <div class="w-full md:w-2/3 space-y-4">
@@ -445,9 +434,10 @@
                         </div>
                     </div>
 
-                    <div class="w-full md:w-1/3 flex justify-center">
-                        <div class="w-48 h-48 border-2 border-tokai-navy rounded-full p-2 flex flex-col items-center justify-center text-center bg-white shadow-md">
-                            <img src="images/150th_logo.png" alt="150周年記念ロゴマーク" class="w-full h-full object-contain p-2" onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\'fa-solid fa-hands-praying text-4xl text-tokai-navy mb-1\'></i><span class=\'text-2xl font-serif font-black text-tokai-navy tracking-tight\'>150th</span><span class=\'text-[10px] text-tokai-gold font-bold tracking-widest uppercase\'>Anniversary</span><span class=\'text-[9px] text-slate-400\'>1888 - 2038</span><span class=\'text-[10px] font-serif font-bold text-tokai-navy mt-1\'>東海中学校 東海高等学校</span>';">
+                    <!-- 丸囲みを削除したシンプルな画像配置 -->
+                    <div class="w-full md:w-1/3 flex justify-center items-center">
+                        <div class="w-48 h-48 flex flex-col items-center justify-center text-center">
+                            <img src="images/150th_logo.jpeg" alt="150周年記念ロゴマーク" class="max-w-full max-h-full object-contain" onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\'fa-solid fa-hands-praying text-4xl text-tokai-navy mb-1\'></i><span class=\'text-2xl font-serif font-black text-tokai-navy tracking-tight\'>150th</span><span class=\'text-[10px] text-tokai-gold font-bold tracking-widest uppercase\'>Anniversary</span><span class=\'text-[9px] text-slate-400\'>1888 - 2038</span><span class=\'text-[10px] font-serif font-bold text-tokai-navy mt-1\'>東海中学校 東海高等学校</span>';">
                         </div>
                     </div>
                 </div>
@@ -767,7 +757,7 @@
                 <div class="space-y-3">
                     <span class="text-xs text-tokai-gold font-bold tracking-widest uppercase">お問い合わせ</span>
                     <h3 class="text-lg sm:text-xl font-serif font-bold">ご寄付の手続きに関するお問い合わせ</h3>
-                    <p class="text-xs sm:text-sm text-slate-300">東海中学校・東海高等学校 東京同窓会 / 学校法人 東海学園 事務局</p>
+                    <p class="text-xs sm:text-sm text-slate-300">学校法人 東海学園 事務局</p>
                 </div>
                 <div class="bg-tokai-navydark p-5 rounded-xl border border-slate-700 space-y-2.5 text-xs sm:text-sm font-mono">
                     <div class="flex items-center space-x-3">
@@ -800,6 +790,24 @@
         mobileBtn.addEventListener('click', () => {
             mobileMenu.classList.toggle('hidden');
         });
+
+        // 寄付状況バロメーターのアニメーション処理（スクロールで表示された時に伸ばす）
+        const progressObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const progressBar = document.getElementById('progress-bar');
+                    if (progressBar) {
+                        progressBar.style.width = '14.7%';
+                    }
+                    progressObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.2 });
+
+        const progressContainer = document.getElementById('progress-container');
+        if (progressContainer) {
+            progressObserver.observe(progressContainer);
+        }
 
         function switchTaxTab(type) {
             const kojinTab = document.getElementById('tab-kojin');
